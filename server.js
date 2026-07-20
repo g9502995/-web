@@ -325,11 +325,19 @@ app.post('/api/line-webhook', (req, res) => {
   })).catch(err => console.error('Webhook error:', err));
 });
 
-// Load admin config on startup
-const savedConfig = loadAdminConfig();
-if (savedConfig.channelAccessToken && savedConfig.channelSecret) {
-  initializeLineBot(savedConfig.channelAccessToken, savedConfig.channelSecret);
-  console.log('✓ Loaded saved admin config');
+// Load admin config on startup (from env variables or file)
+const envToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+const envSecret = process.env.LINE_CHANNEL_SECRET;
+
+if (envToken && envSecret) {
+  initializeLineBot(envToken, envSecret);
+  console.log('✓ Loaded LINE Bot config from environment variables');
+} else {
+  const savedConfig = loadAdminConfig();
+  if (savedConfig.channelAccessToken && savedConfig.channelSecret) {
+    initializeLineBot(savedConfig.channelAccessToken, savedConfig.channelSecret);
+    console.log('✓ Loaded saved admin config from file');
+  }
 }
 
 app.listen(PORT, () => {
