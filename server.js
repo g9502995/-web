@@ -302,6 +302,7 @@ app.post('/api/line-webhook', (req, res) => {
 
       console.log(`📱 Message from ${userId}: ${text}`);
 
+      // Always reply to any message
       if (text.includes('我的id') || text.includes('my id') || text === 'id') {
         return lineBotClient.replyMessage(event.replyToken, {
           type: 'text',
@@ -311,6 +312,12 @@ app.post('/api/line-webhook', (req, res) => {
         return lineBotClient.replyMessage(event.replyToken, {
           type: 'text',
           text: '垃圾車警報系統\n\n📝 指令:\n- 我的id: 顯示你的 User ID\n- 幫助: 顯示此訊息\n\n👉 在網頁版設置你的警報，點「綁定到 LINE」即可接收警報。'
+        });
+      } else {
+        // Default reply to any message
+        return lineBotClient.replyMessage(event.replyToken, {
+          type: 'text',
+          text: `收到你的訊息: "${event.message.text}"\n\n試試發送:\n- 我的id\n- 幫助`
         });
       }
     }
