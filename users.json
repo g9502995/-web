@@ -1,0 +1,11 @@
+{
+  "U6b8f9d1d10350004f02fe7448fd4824c": {
+    "userId": "U6b8f9d1d10350004f02fe7448fd4824c",
+    "alertLat": 24.6630084,
+    "alertLng": 121.823616,
+    "alertRadius": 200,
+    "alertAfterTime": "19:00",
+    "streetFilter": "",
+    "boundAt": "2026-07-20T12:51:15.938Z"
+  }
+}

@@ -20,7 +20,7 @@
         <div class="logo-icon">🚛</div>
         <div>
           <h1>垃圾車即時追蹤警報</h1>
-          <p class="subtitle">Garbage Truck Proximity Alert System</p>
+          <p class="subtitle">個人警報設置系統</p>
         </div>
       </div>
       <div class="status-indicator">
@@ -30,75 +30,76 @@
     </header>
 
     <div class="main-layout">
-      <!-- Sidebar / Settings / Alert History -->
+      <!-- Sidebar / Settings -->
       <aside class="sidebar">
-        <!-- User Location and Radius Settings -->
+
+        <!-- 我的 User ID & LINE 綁定 -->
+        <section class="card user-id-card">
+          <h2>我的設置</h2>
+          <div class="form-group">
+            <label for="myUserId">我的 LINE User ID</label>
+            <input type="text" id="myUserId" placeholder="U開頭的長字符串" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+            <small style="color: var(--text-muted); margin-top: 0.25rem;">或手動輸入:</small>
+            <input type="text" id="myUserIdInput" placeholder="手動輸入你的 User ID">
+          </div>
+        </section>
+
+        <!-- 用戶警報設置 -->
         <section class="card settings-card">
-          <h2>設置參數</h2>
+          <h2>我的警報設置</h2>
           <!-- Map Click Mode Selector -->
           <div class="form-group">
             <label>地圖點擊設定目標</label>
             <div class="radio-group" style="display: flex; gap: 1rem; margin-top: 0.25rem;">
               <label style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; cursor: pointer;">
-                <input type="radio" name="clickMode" value="alertPoint" checked> 警報偵測點
+                <input type="radio" name="clickMode" value="alertPoint" checked> 警報點
               </label>
               <label style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; cursor: pointer;">
-                <input type="radio" name="clickMode" value="home"> 我的住家
+                <input type="radio" name="clickMode" value="home"> 住家
               </label>
             </div>
           </div>
-          <!-- Home Coordinates -->
-          <div class="form-row">
-            <div class="form-group">
-              <label for="homeLat">住家緯度</label>
-              <input type="number" id="homeLat" step="any" value="24.659710035666908">
-            </div>
-            <div class="form-group">
-              <label for="homeLng">住家經度</label>
-              <input type="number" id="homeLng" step="any" value="121.82424418663483">
-            </div>
-          </div>
+
           <!-- Alert Point Coordinates -->
           <div class="form-row">
             <div class="form-group">
-              <label for="alertLat">偵測點緯度</label>
+              <label for="alertLat">警報點緯度</label>
               <input type="number" id="alertLat" step="any" value="24.659710035666908">
             </div>
             <div class="form-group">
-              <label for="alertLng">偵測點經度</label>
+              <label for="alertLng">警報點經度</label>
               <input type="number" id="alertLng" step="any" value="121.82424418663483">
             </div>
           </div>
-          <!-- Radius & Interval -->
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alertRadius">偵測點半徑 (公尺)</label>
-              <input type="number" id="alertRadius" value="200" min="50" max="2000">
-            </div>
-            <div class="form-group">
-              <label for="pollInterval">更新頻率 (秒)</label>
-              <input type="number" id="pollInterval" value="10" min="5" max="60">
-            </div>
+
+          <!-- Radius -->
+          <div class="form-group">
+            <label for="alertRadius">警報範圍半徑 (公尺)</label>
+            <input type="number" id="alertRadius" value="200" min="50" max="2000">
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alertAfterTime">在此時間後提醒</label>
-              <input type="time" id="alertAfterTime" value="00:00">
-            </div>
-            <div class="form-group">
-              <label for="streetFilter">指定路段/街名 (選填)</label>
-              <input type="text" id="streetFilter" placeholder="例如：礁溪路">
-            </div>
+
+          <!-- Time Filter -->
+          <div class="form-group">
+            <label for="alertAfterTime">在此時間後提醒</label>
+            <input type="time" id="alertAfterTime" value="00:00">
           </div>
-          <button id="saveSettingsBtn" class="btn btn-primary">更新設定</button>
+
+          <!-- Street Filter -->
+          <div class="form-group">
+            <label for="streetFilter">指定路段/街名 (選填)</label>
+            <input type="text" id="streetFilter" placeholder="例如：礁溪路">
+          </div>
+
+          <!-- 綁定到 LINE 按鈕 -->
+          <button id="bindLineBotBtn" class="btn btn-primary">綁定到 LINE 並開始接收警報</button>
         </section>
 
-        <!-- Notification Control -->
+        <!-- 通知控制 -->
         <section class="card notification-card">
-          <h2>警報測試與權限</h2>
+          <h2>本地警報設置</h2>
           <div class="btn-group">
             <button id="requestNotificationBtn" class="btn btn-outline">啟用瀏覽器通知</button>
-            <button id="testAlarmBtn" class="btn btn-outline">測試語音與警報音</button>
+            <button id="testAlarmBtn" class="btn btn-outline">測試警報</button>
           </div>
           <div class="toggle-group">
             <label class="switch-container">
@@ -114,44 +115,38 @@
           </div>
         </section>
 
-        <!-- LINE Bot Broadcast Configuration -->
-        <section class="card line-bot-card">
-          <h2>LINE Bot 廣播設置</h2>
-          <div class="form-group">
-            <label for="lineChannelToken">Channel Access Token</label>
-            <input type="password" id="lineChannelToken" placeholder="輸入你的 Channel Access Token">
+        <!-- 警報記錄 -->
+        <section class="card log-card">
+          <h2>系統訊息</h2>
+          <div class="alert-list" id="alertList">
+            <div class="empty-log">尚無系統訊息</div>
           </div>
-          <div class="form-group">
-            <label for="lineChannelSecret">Channel Secret</label>
-            <input type="password" id="lineChannelSecret" placeholder="輸入你的 Channel Secret">
-          </div>
+        </section>
 
-          <h3 style="margin-top: 1rem; font-size: 0.9rem;">接收警報的合作方</h3>
-          <div class="form-group">
-            <label for="lineRecipientId">合作方 LINE ID</label>
-            <input type="text" id="lineRecipientId" placeholder="例如: U1234567890abcdef1234567890abcdef">
-            <button id="addRecipientBtn" class="btn btn-outline" style="margin-top: 0.5rem; width: 100%;">新增收件人</button>
-          </div>
-
-          <div id="recipientsList" style="margin-top: 1rem; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem;">
-            <div class="empty-recipients" style="text-align: center; color: var(--text-muted); padding: 1rem;">
-              尚無收件人
+        <!-- 管理員設置 (折叠) -->
+        <section class="card admin-card">
+          <h2>
+            <span onclick="toggleAdminPanel()" style="cursor: pointer;">
+              ⚙️ 管理員設置
+              <span id="adminToggle">▼</span>
+            </span>
+          </h2>
+          <div id="adminPanel" style="display: none; margin-top: 1rem;">
+            <div class="form-group">
+              <label for="lineChannelToken">Channel Access Token</label>
+              <input type="password" id="lineChannelToken" placeholder="輸入你的 Channel Access Token">
+            </div>
+            <div class="form-group">
+              <label for="lineChannelSecret">Channel Secret</label>
+              <input type="password" id="lineChannelSecret" placeholder="輸入你的 Channel Secret">
+            </div>
+            <button id="saveAdminBtn" class="btn btn-primary">保存管理員設置</button>
+            <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+              <p>只需設置一次。系統會向已綁定的用戶廣播警報。</p>
             </div>
           </div>
-
-          <button id="saveLineBotBtn" class="btn btn-primary" style="margin-top: 1rem;">保存 LINE Bot 設置</button>
-          <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-muted);">
-            <p>📌 廣播模式: 警報將發送給所有已添加的合作方</p>
-          </div>
         </section>
 
-        <!-- Alert Log / Near Trucks -->
-        <section class="card log-card">
-          <h2>警報記錄與動態</h2>
-          <div class="alert-list" id="alertList">
-            <div class="empty-log">目前無警報觸發記錄</div>
-          </div>
-        </section>
       </aside>
 
       <!-- Map & Truck List -->
@@ -163,7 +158,7 @@
 
         <!-- Active Trucks Grid -->
         <section class="card list-card">
-          <h2>垃圾車即時狀態列表 (<span id="truckCount">0</span>)</h2>
+          <h2>垃圾車即時狀態 (<span id="truckCount">0</span>)</h2>
           <div class="table-container">
             <table>
               <thead>
@@ -189,22 +184,6 @@
 
   <!-- Audio elements for alerts -->
   <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
-
-  <!-- Mobile Bottom Navigation Bar -->
-  <nav class="mobile-nav" id="mobileNav">
-    <button class="nav-tab active" data-tab="map-section">
-      <span class="nav-icon">🗺️</span>
-      <span class="nav-label">地圖追蹤</span>
-    </button>
-    <button class="nav-tab" data-tab="list-section">
-      <span class="nav-icon">📋</span>
-      <span class="nav-label">車輛列表</span>
-    </button>
-    <button class="nav-tab" data-tab="settings-section">
-      <span class="nav-icon">⚙️</span>
-      <span class="nav-label">控制設定</span>
-    </button>
-  </nav>
 
   <!-- Leaflet Map JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
