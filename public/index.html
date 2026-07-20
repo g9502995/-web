@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>垃圾車即時追蹤與警報系統</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">🚛</div>
+        <div>
+          <h1>垃圾車即時追蹤警報</h1>
+          <p class="subtitle">Garbage Truck Proximity Alert System</p>
+        </div>
+      </div>
+      <div class="status-indicator">
+        <span class="pulse-dot idle" id="statusDot"></span>
+        <span class="status-text" id="statusText">系統初始化中...</span>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar / Settings / Alert History -->
+      <aside class="sidebar">
+        <!-- User Location and Radius Settings -->
+        <section class="card settings-card">
+          <h2>設置參數</h2>
+          <!-- Map Click Mode Selector -->
+          <div class="form-group">
+            <label>地圖點擊設定目標</label>
+            <div class="radio-group" style="display: flex; gap: 1rem; margin-top: 0.25rem;">
+              <label style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="radio" name="clickMode" value="alertPoint" checked> 警報偵測點
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="radio" name="clickMode" value="home"> 我的住家
+              </label>
+            </div>
+          </div>
+          <!-- Home Coordinates -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="homeLat">住家緯度</label>
+              <input type="number" id="homeLat" step="any" value="24.659710035666908">
+            </div>
+            <div class="form-group">
+              <label for="homeLng">住家經度</label>
+              <input type="number" id="homeLng" step="any" value="121.82424418663483">
+            </div>
+          </div>
+          <!-- Alert Point Coordinates -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alertLat">偵測點緯度</label>
+              <input type="number" id="alertLat" step="any" value="24.659710035666908">
+            </div>
+            <div class="form-group">
+              <label for="alertLng">偵測點經度</label>
+              <input type="number" id="alertLng" step="any" value="121.82424418663483">
+            </div>
+          </div>
+          <!-- Radius & Interval -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alertRadius">偵測點半徑 (公尺)</label>
+              <input type="number" id="alertRadius" value="200" min="50" max="2000">
+            </div>
+            <div class="form-group">
+              <label for="pollInterval">更新頻率 (秒)</label>
+              <input type="number" id="pollInterval" value="10" min="5" max="60">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alertAfterTime">在此時間後提醒</label>
+              <input type="time" id="alertAfterTime" value="00:00">
+            </div>
+            <div class="form-group">
+              <label for="streetFilter">指定路段/街名 (選填)</label>
+              <input type="text" id="streetFilter" placeholder="例如：礁溪路">
+            </div>
+          </div>
+          <button id="saveSettingsBtn" class="btn btn-primary">更新設定</button>
+        </section>
+
+        <!-- Notification Control -->
+        <section class="card notification-card">
+          <h2>警報測試與權限</h2>
+          <div class="btn-group">
+            <button id="requestNotificationBtn" class="btn btn-outline">啟用瀏覽器通知</button>
+            <button id="testAlarmBtn" class="btn btn-outline">測試語音與警報音</button>
+          </div>
+          <div class="toggle-group">
+            <label class="switch-container">
+              <input type="checkbox" id="enableVoice" checked>
+              <span class="switch-slider"></span>
+              開啟語音播報
+            </label>
+            <label class="switch-container">
+              <input type="checkbox" id="enableSound" checked>
+              <span class="switch-slider"></span>
+              開啟警報音效
+            </label>
+          </div>
+        </section>
+
+        <!-- Alert Log / Near Trucks -->
+        <section class="card log-card">
+          <h2>警報記錄與動態</h2>
+          <div class="alert-list" id="alertList">
+            <div class="empty-log">目前無警報觸發記錄</div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Map & Truck List -->
+      <main class="content-area">
+        <!-- Interactive Map -->
+        <section class="card map-card">
+          <div id="map"></div>
+        </section>
+
+        <!-- Active Trucks Grid -->
+        <section class="card list-card">
+          <h2>垃圾車即時狀態列表 (<span id="truckCount">0</span>)</h2>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>車牌號碼</th>
+                  <th>類型</th>
+                  <th>更新時間</th>
+                  <th>距離</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody id="truckTableBody">
+                <tr>
+                  <td colspan="5" style="text-align: center; color: var(--text-muted);">等待資料載入...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Audio elements for alerts -->
+  <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Main Script -->
+  <script src="app.js"></script>
+</body>
+</html>
