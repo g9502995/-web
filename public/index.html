@@ -114,6 +114,37 @@
           </div>
         </section>
 
+        <!-- LINE Bot Broadcast Configuration -->
+        <section class="card line-bot-card">
+          <h2>LINE Bot 廣播設置</h2>
+          <div class="form-group">
+            <label for="lineChannelToken">Channel Access Token</label>
+            <input type="password" id="lineChannelToken" placeholder="輸入你的 Channel Access Token">
+          </div>
+          <div class="form-group">
+            <label for="lineChannelSecret">Channel Secret</label>
+            <input type="password" id="lineChannelSecret" placeholder="輸入你的 Channel Secret">
+          </div>
+
+          <h3 style="margin-top: 1rem; font-size: 0.9rem;">接收警報的合作方</h3>
+          <div class="form-group">
+            <label for="lineRecipientId">合作方 LINE ID</label>
+            <input type="text" id="lineRecipientId" placeholder="例如: U1234567890abcdef1234567890abcdef">
+            <button id="addRecipientBtn" class="btn btn-outline" style="margin-top: 0.5rem; width: 100%;">新增收件人</button>
+          </div>
+
+          <div id="recipientsList" style="margin-top: 1rem; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem;">
+            <div class="empty-recipients" style="text-align: center; color: var(--text-muted); padding: 1rem;">
+              尚無收件人
+            </div>
+          </div>
+
+          <button id="saveLineBotBtn" class="btn btn-primary" style="margin-top: 1rem;">保存 LINE Bot 設置</button>
+          <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-muted);">
+            <p>📌 廣播模式: 警報將發送給所有已添加的合作方</p>
+          </div>
+        </section>
+
         <!-- Alert Log / Near Trucks -->
         <section class="card log-card">
           <h2>警報記錄與動態</h2>
@@ -158,6 +189,22 @@
 
   <!-- Audio elements for alerts -->
   <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="nav-tab active" data-tab="map-section">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label">地圖追蹤</span>
+    </button>
+    <button class="nav-tab" data-tab="list-section">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">車輛列表</span>
+    </button>
+    <button class="nav-tab" data-tab="settings-section">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">控制設定</span>
+    </button>
+  </nav>
 
   <!-- Leaflet Map JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

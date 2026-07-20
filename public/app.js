@@ -14,6 +14,11 @@ let alertRadius = 200; // in meters (default 200m around the alert point)
 let pollInterval = 10; // in seconds
 let alertAfterTime = "00:00";
 let streetFilter = "";
+let lineBotConfig = {
+  channelToken: "",
+  channelSecret: "",
+  recipients: [] // Array of LINE user IDs to broadcast alerts
+};
 
 // UI Elements
 const statusDot = document.getElementById('statusDot');
@@ -35,6 +40,12 @@ const alertList = document.getElementById('alertList');
 const truckCount = document.getElementById('truckCount');
 const truckTableBody = document.getElementById('truckTableBody');
 const alertSound = document.getElementById('alertSound');
+const lineChannelTokenInput = document.getElementById('lineChannelToken');
+const lineChannelSecretInput = document.getElementById('lineChannelSecret');
+const lineRecipientIdInput = document.getElementById('lineRecipientId');
+const addRecipientBtn = document.getElementById('addRecipientBtn');
+const recipientsList = document.getElementById('recipientsList');
+const saveLineBotBtn = document.getElementById('saveLineBotBtn');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,6 +66,9 @@ function loadSavedSettings() {
   const savedInterval = localStorage.getItem('pollInterval');
   const savedAfterTime = localStorage.getItem('alertAfterTime');
   const savedStreet = localStorage.getItem('streetFilter');
+  const savedLineToken = localStorage.getItem('lineChannelToken');
+  const savedLineSecret = localStorage.getItem('lineChannelSecret');
+  const savedLineUserId = localStorage.getItem('lineUserId');
 
   if (savedLat && savedLng) {
     homeCoords = [parseFloat(savedLat), parseFloat(savedLng)];
@@ -86,6 +100,25 @@ function loadSavedSettings() {
   if (savedStreet !== null && savedStreet !== undefined) {
     streetFilter = savedStreet;
     streetFilterInput.value = savedStreet;
+  }
+  if (savedLineToken) {
+    lineBotConfig.channelToken = savedLineToken;
+    lineChannelTokenInput.value = savedLineToken;
+  }
+  if (savedLineSecret) {
+    lineBotConfig.channelSecret = savedLineSecret;
+    lineChannelSecretInput.value = savedLineSecret;
+  }
+
+  // Load recipients list
+  const savedRecipients = localStorage.getItem('lineRecipients');
+  if (savedRecipients) {
+    try {
+      lineBotConfig.recipients = JSON.parse(savedRecipients);
+      renderRecipientsList();
+    } catch (e) {
+      console.error('Error loading recipients:', e);
+    }
   }
 }
 
@@ -219,6 +252,8 @@ function getDistance(lat1, lon1, lat2, lon2) {
 // Setup Event Listeners
 function setupEventListeners() {
   saveSettingsBtn.addEventListener('click', saveSettings);
+  saveLineBotBtn.addEventListener('click', saveLineBotConfig);
+  addRecipientBtn.addEventListener('click', addRecipient);
   requestNotificationBtn.addEventListener('click', () => requestNotificationPermission(false));
   testAlarmBtn.addEventListener('click', triggerTestAlarm);
 }
@@ -300,6 +335,104 @@ function triggerTestAlarm() {
   speak('警報測試成功，本系統隨時為您監控附近的垃圾車。');
   showNotification('警報測試', '這是來自垃圾車即時追蹤系統的測試通知！');
   addLog('觸發警報測試', 'info');
+
+  // Test LINE broadcast
+  if (lineBotConfig.recipients.length > 0 && lineBotConfig.channelToken) {
+    const testMessage = '🚛 [測試警報] 垃圾車即時追蹤系統正常運作！';
+    lineBotConfig.recipients.forEach(recipientId => {
+      sendLineMessage(recipientId, testMessage);
+    });
+    addLog(`已向 ${lineBotConfig.recipients.length} 個收件人發送測試 LINE 通知`, 'info');
+  }
+}
+
+// Add a recipient to the broadcast list
+function addRecipient() {
+  const recipientId = lineRecipientIdInput.value.trim();
+
+  if (!recipientId) {
+    addLog('請填入合作方的 LINE ID', 'info');
+    return;
+  }
+
+  if (lineBotConfig.recipients.includes(recipientId)) {
+    addLog('此 LINE ID 已存在！', 'info');
+    return;
+  }
+
+  lineBotConfig.recipients.push(recipientId);
+  lineRecipientIdInput.value = '';
+  renderRecipientsList();
+  addLog(`已添加收件人：${recipientId}`, 'info');
+}
+
+// Remove a recipient from the list
+function removeRecipient(recipientId) {
+  lineBotConfig.recipients = lineBotConfig.recipients.filter(id => id !== recipientId);
+  renderRecipientsList();
+  addLog(`已移除收件人：${recipientId}`, 'info');
+}
+
+// Render the recipients list UI
+function renderRecipientsList() {
+  if (lineBotConfig.recipients.length === 0) {
+    recipientsList.innerHTML = '<div class="empty-recipients" style="text-align: center; color: var(--text-muted); padding: 1rem;">尚無收件人</div>';
+    return;
+  }
+
+  recipientsList.innerHTML = lineBotConfig.recipients.map((recipientId, index) => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
+      <span style="word-break: break-all; flex: 1;">${recipientId}</span>
+      <button onclick="removeRecipient('${recipientId}')" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">移除</button>
+    </div>
+  `).join('');
+}
+
+// Save LINE Bot Configuration
+async function saveLineBotConfig() {
+  const token = lineChannelTokenInput.value.trim();
+  const secret = lineChannelSecretInput.value.trim();
+
+  if (!token || !secret) {
+    addLog('請填入 Channel Access Token 和 Channel Secret！', 'info');
+    return;
+  }
+
+  if (lineBotConfig.recipients.length === 0) {
+    addLog('請至少添加一個收件人！', 'info');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/line-bot-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        channelAccessToken: token,
+        channelSecret: secret,
+        recipients: lineBotConfig.recipients
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.details || errorData.error || 'Configuration failed');
+    }
+
+    lineBotConfig.channelToken = token;
+    lineBotConfig.channelSecret = secret;
+
+    localStorage.setItem('lineChannelToken', token);
+    localStorage.setItem('lineChannelSecret', secret);
+    localStorage.setItem('lineRecipients', JSON.stringify(lineBotConfig.recipients));
+
+    addLog(`✓ LINE Bot 廣播設置已保存！將向 ${lineBotConfig.recipients.length} 個收件人廣播警報。`, 'info');
+  } catch (error) {
+    console.error('Error saving LINE Bot config:', error);
+    addLog(`LINE Bot 設置失敗: ${error.message}`, 'near');
+  }
 }
 
 // Start Polling Loop
@@ -443,7 +576,7 @@ async function checkAlertRules(plate, style, distance, lat, lng) {
       const [afterHour, afterMin] = alertAfterTime.split(':').map(Number);
       const targetTime = new Date();
       targetTime.setHours(afterHour, afterMin, 0, 0);
-      
+
       if (nowTime < targetTime) {
         return; // Current time is before the allowed alert start time
       }
@@ -466,14 +599,39 @@ async function checkAlertRules(plate, style, distance, lat, lng) {
     // Alert if not alerted recently (cooldown)
     if (now - lastAlert > threeMinutes) {
       alertCooldowns[plate] = now;
-      
+
       const message = `${style} (${plate}) ${roadInfo}距離您只有 ${distance} 公尺，請準備出門倒垃圾！`;
-      
+
       playSound();
       speak(`注意，車牌 ${plate} 的 ${style} 已經抵達 ${streetFilter || '附近'}，距離您只有 ${distance} 公尺！`);
       showNotification('垃圾車靠近警報！', message);
       addLog(message, 'near');
+
+      // Broadcast to all LINE recipients if configured
+      if (lineBotConfig.recipients.length > 0 && lineBotConfig.channelToken) {
+        lineBotConfig.recipients.forEach(recipientId => {
+          sendLineMessage(recipientId, `🚛 ${message}`);
+        });
+      }
     }
+  }
+}
+
+// Send message to LINE user
+async function sendLineMessage(userId, message) {
+  try {
+    await fetch('/api/send-line-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId: userId,
+        message: message
+      })
+    });
+  } catch (error) {
+    console.error('Failed to send LINE message:', error);
   }
 }
 
