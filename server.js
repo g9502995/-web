@@ -19,8 +19,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 let lineBotClient = null;
 let lineBotConfig = { channelAccessToken: '', channelSecret: '' };
 
-// User data file path
+// Data file paths
 const usersDataFile = path.join(__dirname, 'users.json');
+const adminConfigFile = path.join(__dirname, 'admin-config.json');
 
 // Load users data
 function loadUsersData() {
@@ -41,6 +42,28 @@ function saveUsersData(users) {
     fs.writeFileSync(usersDataFile, JSON.stringify(users, null, 2), 'utf8');
   } catch (error) {
     console.error('Error saving users data:', error);
+  }
+}
+
+// Load admin config
+function loadAdminConfig() {
+  try {
+    if (fs.existsSync(adminConfigFile)) {
+      const data = fs.readFileSync(adminConfigFile, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading admin config:', error);
+  }
+  return { channelAccessToken: '', channelSecret: '' };
+}
+
+// Save admin config
+function saveAdminConfig(config) {
+  try {
+    fs.writeFileSync(adminConfigFile, JSON.stringify(config, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error saving admin config:', error);
   }
 }
 
@@ -78,6 +101,8 @@ app.post('/api/admin-config', (req, res) => {
 
   try {
     initializeLineBot(channelAccessToken, channelSecret);
+    // Save to file for persistence
+    saveAdminConfig({ channelAccessToken, channelSecret });
     res.json({ success: true, message: 'Admin config saved' });
   } catch (error) {
     console.error('Error:', error);
@@ -263,6 +288,11 @@ function getDistance(lat1, lon1, lat2, lon2) {
 app.post('/api/line-webhook', (req, res) => {
   res.status(200).json({ ok: true });
 
+  // Re-initialize LINE Bot on each request (for Vercel serverless)
+  if (!lineBotClient && lineBotConfig.channelAccessToken && lineBotConfig.channelSecret) {
+    initializeLineBot(lineBotConfig.channelAccessToken, lineBotConfig.channelSecret);
+  }
+
   if (!lineBotClient || !req.body || !req.body.events) return;
 
   Promise.all(req.body.events.map(event => {
@@ -282,6 +312,13 @@ app.post('/api/line-webhook', (req, res) => {
     return Promise.resolve();
   })).catch(err => console.error('Webhook error:', err));
 });
+
+// Load admin config on startup
+const savedConfig = loadAdminConfig();
+if (savedConfig.channelAccessToken && savedConfig.channelSecret) {
+  initializeLineBot(savedConfig.channelAccessToken, savedConfig.channelSecret);
+  console.log('✓ Loaded saved admin config');
+}
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
