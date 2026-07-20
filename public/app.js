@@ -46,6 +46,7 @@ const alertSound = document.getElementById('alertSound');
 const lineChannelTokenInput = document.getElementById('lineChannelToken');
 const lineChannelSecretInput = document.getElementById('lineChannelSecret');
 const saveAdminBtn = document.getElementById('saveAdminBtn');
+const testLineMapBtn = document.getElementById('testLineMapBtn');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -113,6 +114,7 @@ function setupEventListeners() {
   saveAdminBtn.addEventListener('click', saveAdminSettings);
   requestNotificationBtn.addEventListener('click', () => requestNotificationPermission(false));
   testAlarmBtn.addEventListener('click', triggerTestAlarm);
+  testLineMapBtn.addEventListener('click', testLineMapAlert);
 
   // Save settings when input changes
   alertLatInput.addEventListener('change', saveUserSettings);
@@ -393,6 +395,25 @@ function triggerTestAlarm() {
   if (userConfig.isLinked && userConfig.userId) {
     sendLineAlert(userConfig.userId, '🚛 [測試警報] 垃圾車追蹤系統正常運作！');
   }
+}
+
+// Test LINE alert with map
+function testLineMapAlert() {
+  if (!userConfig.isLinked) {
+    addLog('❌ 請先綁定到 LINE！', 'info');
+    return;
+  }
+
+  // Use alert point coordinates as test location
+  const testLat = userConfig.alertCoords[0];
+  const testLng = userConfig.alertCoords[1];
+
+  playSound();
+  showNotification('垃圾車測試警報', '模擬垃圾車已到達，含地圖圖片');
+  addLog('✓ 已發送模擬垃圾車警報到 LINE（含地圖）', 'info');
+
+  // Send alert with map to LINE
+  sendLineAlert(userConfig.userId, '🚛 [模擬測試] 垃圾車 (TEST-001)\n距離200公尺', testLat, testLng);
 }
 
 // Start polling loop
