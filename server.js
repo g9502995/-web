@@ -159,49 +159,20 @@ app.post('/api/send-alert', async (req, res) => {
   try {
     console.log(`[SEND ALERT] Pushing message...`);
 
-    // Send message with map link if coordinates provided
+    // Send text message
+    await lineBotClient.pushMessage(userId, {
+      type: 'text',
+      text: message
+    });
+
+    // Send location if coordinates provided
     if (lat && lng) {
       await lineBotClient.pushMessage(userId, {
-        type: 'flex',
-        altText: message,
-        contents: {
-          type: 'bubble',
-          body: {
-            type: 'box',
-            layout: 'vertical',
-            contents: [
-              {
-                type: 'text',
-                text: '🚛 垃圾車警報',
-                weight: 'bold',
-                size: 'xl'
-              },
-              {
-                type: 'text',
-                text: message,
-                size: 'lg',
-                color: '#FF0000',
-                weight: 'bold',
-                margin: 'md'
-              },
-              {
-                type: 'button',
-                style: 'link',
-                height: 'sm',
-                action: {
-                  type: 'uri',
-                  label: '📍 查看地圖位置',
-                  uri: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=17`
-                }
-              }
-            ]
-          }
-        }
-      });
-    } else {
-      await lineBotClient.pushMessage(userId, {
-        type: 'text',
-        text: message
+        type: 'location',
+        title: '垃圾車位置',
+        address: message,
+        latitude: lat,
+        longitude: lng
       });
     }
 
@@ -288,57 +259,25 @@ app.post('/api/receive-truck-data', async (req, res) => {
             if (now < target) continue;
           }
 
-          // Send alert with map link
+          // Send alert with location
           if (lineBotClient) {
-            const message = `🚛 ${style} (${plate})\n距離您只有 ${distance}公尺！\n\n📍 位置: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\n👉 <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=17">點擊查看地圖</a>`;
-
             try {
-              // Send message with map link
+              // Send text message
               await lineBotClient.pushMessage(userId, {
-                type: 'flex',
-                altText: message,
-                contents: {
-                  type: 'bubble',
-                  body: {
-                    type: 'box',
-                    layout: 'vertical',
-                    contents: [
-                      {
-                        type: 'text',
-                        text: `🚛 ${style}`,
-                        weight: 'bold',
-                        size: 'xl'
-                      },
-                      {
-                        type: 'text',
-                        text: `車牌: ${plate}`,
-                        size: 'sm',
-                        color: '#999999'
-                      },
-                      {
-                        type: 'text',
-                        text: `距離: ${distance}公尺`,
-                        size: 'lg',
-                        color: '#FF0000',
-                        weight: 'bold',
-                        margin: 'md'
-                      },
-                      {
-                        type: 'button',
-                        style: 'link',
-                        height: 'sm',
-                        action: {
-                          type: 'uri',
-                          label: '📍 查看地圖',
-                          uri: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=17`
-                        }
-                      }
-                    ]
-                  }
-                }
+                type: 'text',
+                text: `🚛 ${style} (${plate})\n距離您只有 ${distance}公尺！`
               });
 
-              console.log(`📱 Alert + map link sent to ${userId}`);
+              // Send location with map
+              await lineBotClient.pushMessage(userId, {
+                type: 'location',
+                title: `${style} - ${plate}`,
+                address: `距離 ${distance}公尺`,
+                latitude: lat,
+                longitude: lng
+              });
+
+              console.log(`📱 Alert + location sent to ${userId}`);
             } catch (error) {
               console.error(`Failed to send alert to ${userId}:`, error);
             }
