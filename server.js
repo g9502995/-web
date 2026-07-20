@@ -306,7 +306,7 @@ app.post('/api/line-webhook', (req, res) => {
       if (text.includes('我的id') || text.includes('my id') || text === 'id') {
         return lineBotClient.replyMessage(event.replyToken, {
           type: 'text',
-          text: `你的 LINE User ID:\n\n${userId}\n\n複製此 ID 到網頁版的「我的 LINE User ID」欄位`
+          text: userId
         });
       } else if (text.includes('幫助') || text.includes('help')) {
         return lineBotClient.replyMessage(event.replyToken, {
