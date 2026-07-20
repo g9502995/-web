@@ -320,7 +320,16 @@ async function fetchData() {
   try {
     const response = await fetch('/api/garbage-trucks');
     if (!response.ok) {
-      throw new Error(`伺服器傳回錯誤 ${response.status}`);
+      let errMsg = `伺服器傳回錯誤 ${response.status}`;
+      try {
+        const errJson = await response.json();
+        if (errJson && errJson.details) {
+          errMsg += ` (${errJson.details})`;
+        } else if (errJson && errJson.error) {
+          errMsg += ` (${errJson.error})`;
+        }
+      } catch (e) {}
+      throw new Error(errMsg);
     }
     const data = await response.json();
     
