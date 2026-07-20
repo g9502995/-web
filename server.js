@@ -125,11 +125,12 @@ app.post('/api/send-line-message', async (req, res) => {
   }
 });
 
-// LINE Bot Webhook endpoint
-app.post('/api/line-webhook', line.middleware({
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
-  channelSecret: process.env.LINE_CHANNEL_SECRET || ''
-}), (req, res) => {
+// LINE Bot Webhook endpoint (will be enabled when LINE Bot is configured)
+app.post('/api/line-webhook', (req, res) => {
+  if (!lineBotClient || !lineBotRecipients.length) {
+    return res.status(400).json({ error: 'LINE Bot not configured' });
+  }
+
   Promise.all(req.body.events.map(event => {
     if (event.type === 'message' && event.message.type === 'text') {
       const text = event.message.text.toLowerCase();
