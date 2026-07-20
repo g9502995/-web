@@ -141,7 +141,7 @@ app.post('/api/bind-user', (req, res) => {
 
 // API: Send alert to user
 app.post('/api/send-alert', async (req, res) => {
-  const { userId, message } = req.body;
+  const { userId, message, lat, lng } = req.body;
 
   console.log(`\n[SEND ALERT] User: ${userId}, Message: ${message}`);
   console.log(`[SEND ALERT] lineBotClient exists: ${!!lineBotClient}`);
@@ -162,6 +162,18 @@ app.post('/api/send-alert', async (req, res) => {
       type: 'text',
       text: message
     });
+
+    // Send map if coordinates provided
+    if (lat && lng) {
+      const mapZoom = 17;
+      const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${mapZoom}&size=600x400&markers=${lat},${lng},red-l`;
+      await lineBotClient.pushMessage(userId, {
+        type: 'image',
+        originalContentUrl: mapUrl,
+        previewImageUrl: mapUrl
+      });
+    }
+
     console.log(`✅ [SEND ALERT] Success! Message sent to ${userId}`);
     res.json({ success: true });
   } catch (error) {
@@ -218,6 +230,7 @@ app.post('/api/receive-truck-data', async (req, res) => {
     for (const userId in users) {
       const userConfig = users[userId];
       if (!userConfig || !userConfig.alertLat || !userConfig.alertLng) continue;
+      if (userConfig.enabled === false) continue; // Skip if disabled
 
       for (const truck of trucks) {
         const plate = truck.Car_Number;
@@ -244,15 +257,29 @@ app.post('/api/receive-truck-data', async (req, res) => {
             if (now < target) continue;
           }
 
-          // Send alert
+          // Send alert with map
           if (lineBotClient) {
-            const message = `🚛 ${style} (${plate}) 距離您只有 ${distance}公尺，請準備出門倒垃圾！`;
+            const message = `🚛 ${style} (${plate})\n距離您只有 ${distance}公尺！`;
+
+            // Generate map image URL
+            const mapZoom = distance < 500 ? 17 : 16;
+            const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${mapZoom}&size=600x400&markers=${lat},${lng},red-l`;
+
             try {
+              // Send text message
               await lineBotClient.pushMessage(userId, {
                 type: 'text',
                 text: message
               });
-              console.log(`📱 Alert sent to ${userId}`);
+
+              // Send map image
+              await lineBotClient.pushMessage(userId, {
+                type: 'image',
+                originalContentUrl: mapUrl,
+                previewImageUrl: mapUrl
+              });
+
+              console.log(`📱 Alert + map sent to ${userId}`);
             } catch (error) {
               console.error(`Failed to send alert to ${userId}:`, error);
             }
@@ -313,6 +340,28 @@ app.post('/api/line-webhook', (req, res) => {
           type: 'text',
           text: '垃圾車警報系統\n\n📝 指令:\n- 我的id: 顯示你的 User ID\n- 幫助: 顯示此訊息\n\n👉 在網頁版設置你的警報，點「綁定到 LINE」即可接收警報。'
         });
+      } else if (text.includes('關閉') || text.includes('disable')) {
+        // Disable alerts for this user
+        const users = loadUsersData();
+        if (users[userId]) {
+          users[userId].enabled = false;
+          saveUsersData(users);
+          return lineBotClient.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '✓ 已關閉警報。發送「啟用」恢復。'
+          });
+        }
+      } else if (text.includes('啟用') || text.includes('enable')) {
+        // Enable alerts for this user
+        const users = loadUsersData();
+        if (users[userId]) {
+          users[userId].enabled = true;
+          saveUsersData(users);
+          return lineBotClient.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '✓ 已啟用警報。'
+          });
+        }
       } else {
         // Default reply to any message
         return lineBotClient.replyMessage(event.replyToken, {

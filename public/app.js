@@ -548,20 +548,20 @@ async function checkAlertRules(plate, style, distance, lat, lng) {
 
       // Send to LINE if linked
       if (userConfig.isLinked && userConfig.userId) {
-        sendLineAlert(userConfig.userId, `🚛 ${message}`);
+        sendLineAlert(userConfig.userId, `🚛 ${message}`, lat, lng);
       }
     }
   }
 }
 
 // Send alert to LINE
-async function sendLineAlert(userId, message) {
+async function sendLineAlert(userId, message, lat, lng) {
   console.log(`Sending LINE alert to ${userId}: ${message}`);
   try {
     const response = await fetch('/api/send-alert', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, message })
+      body: JSON.stringify({ userId, message, lat, lng })
     });
 
     if (!response.ok) {
