@@ -158,19 +158,50 @@ app.post('/api/send-alert', async (req, res) => {
 
   try {
     console.log(`[SEND ALERT] Pushing message...`);
-    await lineBotClient.pushMessage(userId, {
-      type: 'text',
-      text: message
-    });
 
-    // Send map if coordinates provided
+    // Send message with map link if coordinates provided
     if (lat && lng) {
-      const mapZoom = 17;
-      const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${mapZoom}&size=600x400&markers=${lat},${lng},red-l`;
       await lineBotClient.pushMessage(userId, {
-        type: 'image',
-        originalContentUrl: mapUrl,
-        previewImageUrl: mapUrl
+        type: 'flex',
+        altText: message,
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '🚛 垃圾車警報',
+                weight: 'bold',
+                size: 'xl'
+              },
+              {
+                type: 'text',
+                text: message,
+                size: 'lg',
+                color: '#FF0000',
+                weight: 'bold',
+                margin: 'md'
+              },
+              {
+                type: 'button',
+                style: 'link',
+                height: 'sm',
+                action: {
+                  type: 'uri',
+                  label: '📍 查看地圖位置',
+                  uri: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=17`
+                }
+              }
+            ]
+          }
+        }
+      });
+    } else {
+      await lineBotClient.pushMessage(userId, {
+        type: 'text',
+        text: message
       });
     }
 
@@ -257,29 +288,57 @@ app.post('/api/receive-truck-data', async (req, res) => {
             if (now < target) continue;
           }
 
-          // Send alert with map
+          // Send alert with map link
           if (lineBotClient) {
-            const message = `🚛 ${style} (${plate})\n距離您只有 ${distance}公尺！`;
-
-            // Generate map image URL
-            const mapZoom = distance < 500 ? 17 : 16;
-            const mapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${mapZoom}&size=600x400&markers=${lat},${lng},red-l`;
+            const message = `🚛 ${style} (${plate})\n距離您只有 ${distance}公尺！\n\n📍 位置: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\n👉 <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=17">點擊查看地圖</a>`;
 
             try {
-              // Send text message
+              // Send message with map link
               await lineBotClient.pushMessage(userId, {
-                type: 'text',
-                text: message
+                type: 'flex',
+                altText: message,
+                contents: {
+                  type: 'bubble',
+                  body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                      {
+                        type: 'text',
+                        text: `🚛 ${style}`,
+                        weight: 'bold',
+                        size: 'xl'
+                      },
+                      {
+                        type: 'text',
+                        text: `車牌: ${plate}`,
+                        size: 'sm',
+                        color: '#999999'
+                      },
+                      {
+                        type: 'text',
+                        text: `距離: ${distance}公尺`,
+                        size: 'lg',
+                        color: '#FF0000',
+                        weight: 'bold',
+                        margin: 'md'
+                      },
+                      {
+                        type: 'button',
+                        style: 'link',
+                        height: 'sm',
+                        action: {
+                          type: 'uri',
+                          label: '📍 查看地圖',
+                          uri: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=17`
+                        }
+                      }
+                    ]
+                  }
+                }
               });
 
-              // Send map image
-              await lineBotClient.pushMessage(userId, {
-                type: 'image',
-                originalContentUrl: mapUrl,
-                previewImageUrl: mapUrl
-              });
-
-              console.log(`📱 Alert + map sent to ${userId}`);
+              console.log(`📱 Alert + map link sent to ${userId}`);
             } catch (error) {
               console.error(`Failed to send alert to ${userId}:`, error);
             }
