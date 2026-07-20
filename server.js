@@ -302,10 +302,15 @@ app.post('/api/line-webhook', (req, res) => {
 
       console.log(`📱 Message from ${userId}: ${text}`);
 
-      if (text.includes('幫助') || text.includes('help')) {
+      if (text.includes('我的id') || text.includes('my id') || text === 'id') {
         return lineBotClient.replyMessage(event.replyToken, {
           type: 'text',
-          text: '垃圾車警報系統\n\n在網頁版設置你的警報，點「綁定到 LINE」即可接收警報。'
+          text: `你的 LINE User ID:\n\n${userId}\n\n複製此 ID 到網頁版的「我的 LINE User ID」欄位`
+        });
+      } else if (text.includes('幫助') || text.includes('help')) {
+        return lineBotClient.replyMessage(event.replyToken, {
+          type: 'text',
+          text: '垃圾車警報系統\n\n📝 指令:\n- 我的id: 顯示你的 User ID\n- 幫助: 顯示此訊息\n\n👉 在網頁版設置你的警報，點「綁定到 LINE」即可接收警報。'
         });
       }
     }
