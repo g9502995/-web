@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // API endpoint to proxy the garbage truck SOAP/POST requests
 app.get('/api/garbage-trucks', async (req, res) => {
